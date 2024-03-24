@@ -1,0 +1,15 @@
+{
+  "name": "cs-world_backend",
+  "version": "1.0.0",
+  "description": "cs-world is a tech video player project",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node index.js"
+  },
+  "author": "antor sarker",
+  "license": "ISC",
+  "dependencies": {
+    "express": "^4.19.1"
+  }
+}
