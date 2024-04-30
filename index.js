@@ -1,20 +1,17 @@
-const express = require('express')
+const express = require('express');
+const router = require('./routes/routes');
 const app = express()
+const cors=require('cors')
 
 const port = 3500
 
+app.use(cors())
+app.use(express.json())
+
+app.use('/', router)
 app.get('/',(req,res)=>{
-    res.send('hello express js');
+    res.send('home')
 })
-
-app.get('/videos', (req,res)=>{
-    res.send('all videos')
-})
-
-app.get('/details',(req,res)=>{
-    res.send('details singel data')
-})
-
 app.listen(port,()=>{
     console.log(`app listening on port ${port}`)
 })
