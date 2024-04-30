@@ -152,7 +152,6 @@ async function run() {
       };
 
       if (logedInUser) {
-
         //update HistoryID
         const user = await users.findOne({ _id: new ObjectId(logedInUser.id) });
 
@@ -160,18 +159,15 @@ async function run() {
         const options = { upsert: true };
 
         const exist = user.historyId.find((item) => item === videoId);
-        const historyId = [...user.historyId];
-        if (!exist){
-
-          //update viewCount
+        const historyId = !exist? [videoId,...user.historyId] : [...user.historyId]
+        
+        if (!exist) {
           const result = await videos.updateOne(
             videoFilter,
             updateVideo,
             VideoOptions
-          );
-
-          historyId.unshift(videoId);
-        } 
+          )
+        }
 
         const updateUser = {
           $set: {
@@ -194,6 +190,46 @@ async function run() {
         );
         res.send(result);
       }
+    });
+
+    //get History
+    router.get("/history", async (req, res) => {
+      const { id } = req.query;
+      const user = await users.findOne({ _id: new ObjectId(id) });
+
+      const { historyId } = user;
+      const videosData = await videos.find().toArray();
+
+      const historyVideos = videosData.filter((video) => {
+        const exist = historyId.find((item) => item === video.id);
+        if (exist) return true;
+        else return false;
+      });
+      historyVideos.reverse()
+      res.send(historyVideos);
+    });
+
+    //delete from history
+    router.delete("/history", async (req, res) => {
+      const { userId, videoId } = req.body;
+      const user = await users.findOne({ _id: new ObjectId(userId) });
+
+      const historyId = user.historyId.filter((item) => item !== videoId);
+
+      const userFilter = { _id: new ObjectId(userId) };
+      const options = { upsert: true };
+      const updateUser = {
+        $set: {
+          historyId,
+        },
+      };
+      const updateResult = await users.updateOne(
+        userFilter,
+        updateUser,
+        options
+      );
+
+      res.send(updateResult);
     });
   } finally {
     // Ensures that the client will close when you finish/error
