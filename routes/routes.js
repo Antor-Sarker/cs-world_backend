@@ -230,7 +230,55 @@ async function run() {
       );
 
       res.send(updateResult);
-    });
+    })
+
+    //add comment
+    router.post("/comment", async (req,res)=>{
+      
+      const {videoId}=req.query
+
+      const video = await videos.findOne({ id: videoId });
+      const videoFilter = { id: videoId };
+      const VideoOptions = { upsert: true };
+      const updateVideo = {
+        $set: {
+          comments: [req.body,...video.comments]
+        },
+      };
+
+
+      const result = await videos.updateOne(
+        videoFilter,
+        updateVideo,
+        VideoOptions
+      );
+      res.send(result);
+    })
+    
+    //delete comment
+    router.delete("/comment",async(req,res)=>{
+      const {videoId,commentId}=req.body
+      console.log(req.body)
+
+      const video = await videos.findOne({ id: videoId });
+      const videoFilter = { id: videoId };
+      const VideoOptions = { upsert: true };
+      const afterDelete = video.comments.filter(comment=> comment.commentId!==commentId)
+      const updateVideo = {
+        $set: {
+          comments: [...afterDelete]
+        },
+      };
+
+      const result = await videos.updateOne(
+        videoFilter,
+        updateVideo,
+        VideoOptions
+      );
+      res.send(result);
+    })
+
+
   } finally {
     // Ensures that the client will close when you finish/error
     // await client.close();
