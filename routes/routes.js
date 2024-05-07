@@ -251,6 +251,65 @@ async function run() {
       res.send(result);
     });
 
+
+    //toggle save
+    router.patch("/saved", async (req, res) => {
+      const { isSaved, userId, videoId } = req.body;
+
+      const video = await videos.findOne({ id: videoId });
+      const videoFilter = { id: videoId };
+      const VideoOptions = { upsert: true };
+
+      //remove from saved
+      if (isSaved) {
+        const afterRemove = video.savedUser.filter(
+          (item) => item !== userId
+        );
+        const updateVideo = {
+          $set: {
+            savedUser: [...afterRemove],
+          },
+        };
+
+        const result = await videos.updateOne(
+          videoFilter,
+          updateVideo,
+          VideoOptions
+        );
+        res.send(result);
+      }
+
+      //add to save
+      else {
+        const updateVideo = {
+          $set: {
+            savedUser: [userId, ...video.savedUser],
+          },
+        };
+
+        const result = await videos.updateOne(
+          videoFilter,
+          updateVideo,
+          VideoOptions
+        );
+        res.send(result);
+      }
+    });
+
+    //get Saved Data
+    router.get("/saved/:authId", async (req, res) => {
+      const { authId } = req.params;
+
+      const videosData = await videos.find().toArray();
+
+      const result = videosData.filter((video) => {
+        const result = video.savedUser.find((userId) => userId === authId);
+        if (result) return true;
+        else return false;
+      });
+      res.send(result);
+    });
+
     //get History
     router.get("/history", async (req, res) => {
       const { id } = req.query;
