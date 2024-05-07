@@ -94,7 +94,6 @@ async function run() {
         ...req.body,
         avatar: null,
         historyId: [],
-        favouriteId: [],
         savedId: [],
         token: {},
       };
@@ -159,14 +158,16 @@ async function run() {
         const options = { upsert: true };
 
         const exist = user.historyId.find((item) => item === videoId);
-        const historyId = !exist? [videoId,...user.historyId] : [...user.historyId]
-        
+        const historyId = !exist
+          ? [videoId, ...user.historyId]
+          : [...user.historyId];
+
         if (!exist) {
           const result = await videos.updateOne(
             videoFilter,
             updateVideo,
             VideoOptions
-          )
+          );
         }
 
         const updateUser = {
@@ -192,6 +193,64 @@ async function run() {
       }
     });
 
+    //toggle favourite
+    router.patch("/favourite", async (req, res) => {
+      const { isFavourite, userId, videoId } = req.body;
+
+      const video = await videos.findOne({ id: videoId });
+      const videoFilter = { id: videoId };
+      const VideoOptions = { upsert: true };
+
+      //remove from favourite
+      if (isFavourite) {
+        const afterRemove = video.favouriteUser.filter(
+          (item) => item !== userId
+        );
+        const updateVideo = {
+          $set: {
+            favouriteUser: [...afterRemove],
+          },
+        };
+
+        const result = await videos.updateOne(
+          videoFilter,
+          updateVideo,
+          VideoOptions
+        );
+        res.send(result);
+      }
+
+      //add to favourite
+      else {
+        const updateVideo = {
+          $set: {
+            favouriteUser: [userId, ...video.favouriteUser],
+          },
+        };
+
+        const result = await videos.updateOne(
+          videoFilter,
+          updateVideo,
+          VideoOptions
+        );
+        res.send(result);
+      }
+    });
+
+    //get Favourite Data
+    router.get("/favourite/:authId", async (req, res) => {
+      const { authId } = req.params;
+
+      const videosData = await videos.find().toArray();
+
+      const result = videosData.filter((video) => {
+        const result = video.favouriteUser.find((userId) => userId === authId);
+        if (result) return true;
+        else return false;
+      });
+      res.send(result);
+    });
+
     //get History
     router.get("/history", async (req, res) => {
       const { id } = req.query;
@@ -205,7 +264,7 @@ async function run() {
         if (exist) return true;
         else return false;
       });
-      historyVideos.reverse()
+      historyVideos.reverse();
       res.send(historyVideos);
     });
 
@@ -230,22 +289,20 @@ async function run() {
       );
 
       res.send(updateResult);
-    })
+    });
 
     //add comment
-    router.post("/comment", async (req,res)=>{
-      
-      const {videoId}=req.query
+    router.post("/comment", async (req, res) => {
+      const { videoId } = req.query;
 
       const video = await videos.findOne({ id: videoId });
       const videoFilter = { id: videoId };
       const VideoOptions = { upsert: true };
       const updateVideo = {
         $set: {
-          comments: [req.body,...video.comments]
+          comments: [req.body, ...video.comments],
         },
       };
-
 
       const result = await videos.updateOne(
         videoFilter,
@@ -253,20 +310,22 @@ async function run() {
         VideoOptions
       );
       res.send(result);
-    })
-    
+    });
+
     //delete comment
-    router.delete("/comment",async(req,res)=>{
-      const {videoId,commentId}=req.body
-      console.log(req.body)
+    router.delete("/comment", async (req, res) => {
+      const { videoId, commentId } = req.body;
+      console.log(req.body);
 
       const video = await videos.findOne({ id: videoId });
       const videoFilter = { id: videoId };
       const VideoOptions = { upsert: true };
-      const afterDelete = video.comments.filter(comment=> comment.commentId!==commentId)
+      const afterDelete = video.comments.filter(
+        (comment) => comment.commentId !== commentId
+      );
       const updateVideo = {
         $set: {
-          comments: [...afterDelete]
+          comments: [...afterDelete],
         },
       };
 
@@ -276,9 +335,7 @@ async function run() {
         VideoOptions
       );
       res.send(result);
-    })
-
-
+    });
   } finally {
     // Ensures that the client will close when you finish/error
     // await client.close();
