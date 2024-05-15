@@ -195,14 +195,14 @@ async function run() {
 
     //toggle favourite
     router.patch("/favourite", async (req, res) => {
-      const { isFavourite, userId, videoId } = req.body;
+      const { favourite, userId, videoId } = req.body;
 
       const video = await videos.findOne({ id: videoId });
       const videoFilter = { id: videoId };
       const VideoOptions = { upsert: true };
 
       //remove from favourite
-      if (isFavourite) {
+      if (favourite) {
         const afterRemove = video.favouriteUser.filter(
           (item) => item !== userId
         );
@@ -251,20 +251,17 @@ async function run() {
       res.send(result);
     });
 
-
     //toggle save
     router.patch("/saved", async (req, res) => {
-      const { isSaved, userId, videoId } = req.body;
+      const { saved, userId, videoId } = req.body;
 
       const video = await videos.findOne({ id: videoId });
       const videoFilter = { id: videoId };
       const VideoOptions = { upsert: true };
 
       //remove from saved
-      if (isSaved) {
-        const afterRemove = video.savedUser.filter(
-          (item) => item !== userId
-        );
+      if (saved) {
+        const afterRemove = video.savedUser.filter((item) => item !== userId);
         const updateVideo = {
           $set: {
             savedUser: [...afterRemove],
@@ -311,9 +308,9 @@ async function run() {
     });
 
     //get History
-    router.get("/history", async (req, res) => {
-      const { id } = req.query;
-      const user = await users.findOne({ _id: new ObjectId(id) });
+    router.get("/history/:authId", async (req, res) => {
+      const { authId } = req.params;
+      const user = await users.findOne({ _id: new ObjectId(authId) });
 
       const { historyId } = user;
       const videosData = await videos.find().toArray();
@@ -371,10 +368,34 @@ async function run() {
       res.send(result);
     });
 
+    //edit comment
+    router.patch("/comment", async (req, res) => {
+      const { videoId, commentId, content } = req.body;
+      const video = await videos.findOne({ id: videoId });
+      const videoFilter = { id: videoId };
+      const VideoOptions = { upsert: true };
+      const updatedComments = video.comments.map((comment) => {
+        if (comment.commentId === commentId) {
+          return { ...comment, content };
+        } else return comment;
+      });
+      const updateVideo = {
+        $set: {
+          comments: [...updatedComments],
+        },
+      };
+
+      const result = await videos.updateOne(
+        videoFilter,
+        updateVideo,
+        VideoOptions
+      );
+      res.send(result);
+    });
+
     //delete comment
     router.delete("/comment", async (req, res) => {
       const { videoId, commentId } = req.body;
-      console.log(req.body);
 
       const video = await videos.findOne({ id: videoId });
       const videoFilter = { id: videoId };
