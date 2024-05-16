@@ -19,15 +19,15 @@ async function run() {
     // Connect the client to the server	(optional starting in v4.7)
     client.connect();
     // Send a ping to confirm a successful connection
-    await client.db("admin").command({ ping: 1 });
+    client.db("admin").command({ ping: 1 });
     console.log(
       "Pinged your deployment. You successfully connected to MongoDB!"
     );
 
     //DB
-    const database = await client.db("csworld_db");
-    const videos = await database.collection("videos");
-    const users = await database.collection("users");
+    const database = client.db("csworld_db");
+    const videos = database.collection("videos");
+    const users = database.collection("users");
 
     //get All Videos data
     router.get("/videos", async (req, res) => {
